@@ -1,0 +1,16 @@
+version: '3'
+services:
+  xevo-api:
+    build: ./xevo-api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - xevo-game-server
+  xevo-game-server:
+    build: ./xevo-game-server
+    ports:
+      - "8080:8080"
+  xevo-game:
+    build: ./xevo
+    ports:
+      - "4200:4200"
