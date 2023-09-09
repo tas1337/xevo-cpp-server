@@ -10,7 +10,7 @@ services:
     build: ./xevo-cpp-server
     ports:
       - "8080:8080"
-  xevo-game:
-    build: ./xevo-game
-    ports:
-      - "4200:4200"
+  # xevo-game:
+  #   build: ./xevo-game
+  #   ports:
+  #     - "4200:80"
