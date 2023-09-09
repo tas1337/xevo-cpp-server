@@ -5,9 +5,11 @@
 #include <unordered_map>
 #include <thread>
 #include <mutex>
+#include <atomic>
 
 std::unordered_map<std::string, std::pair<int, int>> playerPositions;
 std::mutex playerPositionsMutex;
+std::atomic<int> playerCounter(0); // Declare playerCounter here
 
 std::string player_position_to_json(const std::string& id, int x, int y) {
   nlohmann::json json;
@@ -19,8 +21,18 @@ std::string player_position_to_json(const std::string& id, int x, int y) {
 
 void process_data(const std::string &data, boost::asio::ip::tcp::socket& socket) {
   try {
+    nlohmann::json json = nlohmann::json::parse(data); // Single declaration
     std::cout << "Received data: " << data << std::endl;
-    auto json = nlohmann::json::parse(data);
+
+    if (json.find("action") != json.end() && json["action"] == "disconnect") {
+      std::string id = json["id"];
+      {
+        std::lock_guard<std::mutex> lock(playerPositionsMutex);
+        playerPositions.erase(id);
+      }
+      std::cout << "Player " << id << " has disconnected\n";
+      return;
+    }
 
     if (json.find("id") == json.end()) {
       std::cout << "ID key not found in received data" << std::endl;
@@ -30,21 +42,17 @@ void process_data(const std::string &data, boost::asio::ip::tcp::socket& socket)
     if (json.find("x") != json.end() && json.find("y") != json.end() && json["x"].is_number() && json["y"].is_number()) {
       int x = json["x"];
       int y = json["y"];
-
       {
         std::lock_guard<std::mutex> lock(playerPositionsMutex);
         playerPositions[json["id"]] = std::make_pair(x, y);
       }
-
       std::string response = player_position_to_json(json["id"], x, y);
-
       boost::system::error_code error;
       boost::asio::write(socket, boost::asio::buffer(response), error);
       if (error) {
           std::cerr << "Failed to write to socket. Error: " << error.message() << std::endl;
           return;
       }
-
       std::cout << "Updated position for " << json["id"] << " to (" << x << ", " << y << ")\n";
     } else {
       std::cout << "X and Y keys not found or incorrect type in received data" << std::endl;
@@ -56,6 +64,9 @@ void process_data(const std::string &data, boost::asio::ip::tcp::socket& socket)
 }
 
 void client_handler(boost::asio::ip::tcp::socket socket) {
+  playerCounter++; // Now it should be okay
+  std::cout << "A player has connected. Total players: " << playerCounter << std::endl;
+
   std::array<char, 128> buf;
   boost::system::error_code error;
 
@@ -67,6 +78,9 @@ void client_handler(boost::asio::ip::tcp::socket socket) {
     std::string data(buf.begin(), buf.begin() + len);
     process_data(data, socket);
   }
+
+  playerCounter--;
+  std::cout << "A player has disconnected. Remaining players: " << playerCounter << std::endl;
 }
 
 int main() {

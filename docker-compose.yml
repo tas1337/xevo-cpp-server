@@ -1,7 +1,9 @@
 version: '3'
 services:
   xevo-api:
-    build: ./xevo-api
+    build: 
+      context: .  # Points to project-root
+      dockerfile: CombinedDockerfile 
     ports:
       - "3000:3000"
     depends_on:
@@ -10,7 +12,3 @@ services:
     build: ./xevo-cpp-server
     ports:
       - "8080:8080"
-  # xevo-game:
-  #   build: ./xevo-game
-  #   ports:
-  #     - "4200:80"
