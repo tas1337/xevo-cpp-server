@@ -7,21 +7,21 @@
 #include <mutex>
 #include <atomic>
 
-std::unordered_map<std::string, std::pair<int, int>> playerPositions;
+std::unordered_map<std::string, std::pair<int, int>> playerPositions; // Consider changing the pair to <int, int, int> for 3D coordinates
 std::mutex playerPositionsMutex;
-std::atomic<int> playerCounter(0); // Declare playerCounter here
+std::atomic<int> playerCounter(0);
 
-std::string player_position_to_json(const std::string& id, int x, int y) {
+std::string player_position_to_json(const std::string& id, int x, int z) { // Changed y to z
   nlohmann::json json;
   json["id"] = id;
   json["x"] = x;
-  json["y"] = y;
+  json["z"] = z; // Changed y to z
   return json.dump();
 }
 
 void process_data(const std::string &data, boost::asio::ip::tcp::socket& socket) {
   try {
-    nlohmann::json json = nlohmann::json::parse(data); // Single declaration
+    nlohmann::json json = nlohmann::json::parse(data);
     std::cout << "Received data: " << data << std::endl;
 
     if (json.find("action") != json.end() && json["action"] == "disconnect") {
@@ -39,23 +39,23 @@ void process_data(const std::string &data, boost::asio::ip::tcp::socket& socket)
       return;
     }
 
-    if (json.find("x") != json.end() && json.find("y") != json.end() && json["x"].is_number() && json["y"].is_number()) {
+    if (json.find("x") != json.end() && json.find("z") != json.end() && json["x"].is_number() && json["z"].is_number()) { // Changed y to z
       int x = json["x"];
-      int y = json["y"];
+      int z = json["z"]; // Changed y to z
       {
         std::lock_guard<std::mutex> lock(playerPositionsMutex);
-        playerPositions[json["id"]] = std::make_pair(x, y);
+        playerPositions[json["id"]] = std::make_pair(x, z); // Changed y to z
       }
-      std::string response = player_position_to_json(json["id"], x, y);
+      std::string response = player_position_to_json(json["id"], x, z); // Changed y to z
       boost::system::error_code error;
       boost::asio::write(socket, boost::asio::buffer(response), error);
       if (error) {
           std::cerr << "Failed to write to socket. Error: " << error.message() << std::endl;
           return;
       }
-      std::cout << "Updated position for " << json["id"] << " to (" << x << ", " << y << ")\n";
+      std::cout << "Updated position for " << json["id"] << " to (" << x << ", " << z << ")\n"; // Changed y to z
     } else {
-      std::cout << "X and Y keys not found or incorrect type in received data" << std::endl;
+      std::cout << "X and Z keys not found or incorrect type in received data" << std::endl; // Changed y to z
       return;
     }
   } catch (const std::exception& e) {
@@ -64,7 +64,7 @@ void process_data(const std::string &data, boost::asio::ip::tcp::socket& socket)
 }
 
 void client_handler(boost::asio::ip::tcp::socket socket) {
-  playerCounter++; // Now it should be okay
+  playerCounter++;
   std::cout << "A player has connected. Total players: " << playerCounter << std::endl;
 
   std::array<char, 128> buf;
