@@ -7,15 +7,15 @@
 #include <mutex>
 #include <atomic>
 
-std::unordered_map<std::string, std::pair<int, int>> playerPositions; // Consider changing the pair to <int, int, int> for 3D coordinates
+std::unordered_map<std::string, std::pair<int, int>> playerPositions; 
 std::mutex playerPositionsMutex;
 std::atomic<int> playerCounter(0);
 
-std::string player_position_to_json(const std::string& id, int x, int z) { // Changed y to z
+std::string player_position_to_json(const std::string& id, int x, int z) {
   nlohmann::json json;
   json["id"] = id;
   json["x"] = x;
-  json["z"] = z; // Changed y to z
+  json["z"] = z;
   return json.dump();
 }
 
@@ -39,23 +39,23 @@ void process_data(const std::string &data, boost::asio::ip::tcp::socket& socket)
       return;
     }
 
-    if (json.find("x") != json.end() && json.find("z") != json.end() && json["x"].is_number() && json["z"].is_number()) { // Changed y to z
+    if (json.find("x") != json.end() && json.find("z") != json.end() && json["x"].is_number() && json["z"].is_number()) {
       int x = json["x"];
-      int z = json["z"]; // Changed y to z
+      int z = json["z"];
       {
         std::lock_guard<std::mutex> lock(playerPositionsMutex);
-        playerPositions[json["id"]] = std::make_pair(x, z); // Changed y to z
+        playerPositions[json["id"]] = std::make_pair(x, z);
       }
-      std::string response = player_position_to_json(json["id"], x, z); // Changed y to z
+      std::string response = player_position_to_json(json["id"], x, z);
       boost::system::error_code error;
       boost::asio::write(socket, boost::asio::buffer(response), error);
       if (error) {
           std::cerr << "Failed to write to socket. Error: " << error.message() << std::endl;
           return;
       }
-      std::cout << "Updated position for " << json["id"] << " to (" << x << ", " << z << ")\n"; // Changed y to z
+      std::cout << "Updated position for " << json["id"] << " to (" << x << ", " << z << ")\n";
     } else {
-      std::cout << "X and Z keys not found or incorrect type in received data" << std::endl; // Changed y to z
+      std::cout << "X and Z keys not found or incorrect type in received data" << std::endl;
       return;
     }
   } catch (const std::exception& e) {
